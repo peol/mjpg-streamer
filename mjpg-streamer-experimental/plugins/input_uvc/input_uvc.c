@@ -856,7 +856,7 @@ void *cam_thread(void *arg)
 #endif
                 DBG("copying frame from input: %d\n", (int)pcontext->id);
                 pglobal->in[pcontext->id].size = memcpy_picture(pglobal->in[pcontext->id].buf, pcontext->videoIn->tmpbuffer, pcontext->videoIn->tmpbytesused);
-                rotate_jpeg(pglobal->in[pcontext->id].buf, pglobal->in[pcontext->id].size);
+                pglobal->in[pcontext->id].size = rotate_jpeg(pglobal->in[pcontext->id].buf, pglobal->in[pcontext->id].size);
                 /* copy this frame's timestamp to user space */
                 pglobal->in[pcontext->id].timestamp = pcontext->videoIn->tmptimestamp;
 #ifndef NO_LIBJPEG

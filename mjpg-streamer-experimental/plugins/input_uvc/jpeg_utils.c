@@ -302,14 +302,15 @@ int compress_image_to_jpeg(struct vdIn *vd, unsigned char *buffer, int size, int
     return (written);
 }
 
-int rotate_jpeg(unsigned char *buffer, int size)
+unsigned long rotate_jpeg(unsigned char *buffer, int size)
 {
-    struct jpeg_error_mgr jerr;
+    struct jpeg_error_mgr jerr1;
+    struct jpeg_error_mgr jerr2;
     struct jpeg_compress_struct dinfo;
     struct jpeg_decompress_struct cinfo;
 
-    cinfo.err = jpeg_std_error(&jerr);
-    dinfo.err = jpeg_std_error(&jerr);
+    cinfo.err = jpeg_std_error(&jerr1);
+    dinfo.err = jpeg_std_error(&jerr2);
     jpeg_create_decompress(&cinfo);
     jpeg_create_compress(&dinfo);
     jpeg_mem_src(&cinfo, buffer, size);
@@ -326,22 +327,19 @@ int rotate_jpeg(unsigned char *buffer, int size)
     int rc = jpeg_read_header(&cinfo, TRUE);
 
     // transform
+    jtransform_request_workspace(&cinfo, &xinfo);
     jvirt_barray_ptr *srccoefs = jpeg_read_coefficients(&cinfo);
-    IPRINT("transforming frame2\n");
     jpeg_copy_critical_parameters(&cinfo, &dinfo);
-    IPRINT("transforming frame3\n");
-    IPRINT("transforming frame4\n");
     jvirt_barray_ptr *dstcoefs = jtransform_adjust_parameters(&cinfo, &dinfo, srccoefs, &xinfo);
-    IPRINT("transforming frame5\n");
-    // jpeg_write_coefficients(&dinfo, dstcoefs);
-    IPRINT("transforming frame6\n");
+    unsigned char *mem = NULL;
+    unsigned long mem_size = 0;
+    jpeg_mem_dest(&dinfo, &mem, &mem_size);
+    jpeg_write_coefficients(&dinfo, dstcoefs);
     jcopy_markers_execute(&cinfo, &dinfo, JCOPYOPT_ALL);
-    IPRINT("transforming frame7\n");
     jtransform_execute_transformation(&cinfo, &dinfo, srccoefs, &xinfo);
-    IPRINT("transforming frame8\n");
     jpeg_finish_compress(&dinfo);
+    memcpy_picture(buffer, mem, size);
     jpeg_destroy_compress(&dinfo);
     jpeg_destroy_decompress(&cinfo);
-
-    return 0;
+    return mem_size;
 }
