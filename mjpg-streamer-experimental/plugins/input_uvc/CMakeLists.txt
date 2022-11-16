@@ -9,7 +9,8 @@ if (PLUGIN_INPUT_UVC)
     add_definitions(-DLINUX -D_GNU_SOURCE)
     
     find_library(V4L2_LIB v4l2)
-    find_library(JPEG_LIB jpeg)
+    include_directories(/home/pi/libjpeg-turbo)
+    set (JPEG_LIB "/home/pi/libjpeg-turbo/libturbojpeg.a")
     
     if (V4L2_LIB)
         add_definitions(-DUSE_LIBV4L2)

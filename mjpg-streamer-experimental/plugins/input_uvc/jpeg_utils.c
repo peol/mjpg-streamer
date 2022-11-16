@@ -25,19 +25,21 @@
 
 #include <stdio.h>
 #include <jpeglib.h>
+#include <transupp.h>
 #include <stdlib.h>
 
-#include <linux/types.h>          /* for videodev2.h */
+#include <linux/types.h> /* for videodev2.h */
 #include <linux/videodev2.h>
 
 #include "v4l2uvc.h"
 
-#define OUTPUT_BUF_SIZE  4096
+#define OUTPUT_BUF_SIZE 4096
 
-typedef struct {
+typedef struct
+{
     struct jpeg_destination_mgr pub; /* public fields */
 
-    JOCTET * buffer;    /* start of buffer */
+    JOCTET *buffer; /* start of buffer */
 
     unsigned char *outbuffer;
     int outbuffer_size;
@@ -46,19 +48,20 @@ typedef struct {
 
 } mjpg_destination_mgr;
 
-typedef mjpg_destination_mgr * mjpg_dest_ptr;
+typedef mjpg_destination_mgr *mjpg_dest_ptr;
 
 /******************************************************************************
 Description.:
 Input Value.:
 Return Value:
 ******************************************************************************/
-METHODDEF(void) init_destination(j_compress_ptr cinfo)
+METHODDEF(void)
+init_destination(j_compress_ptr cinfo)
 {
-    mjpg_dest_ptr dest = (mjpg_dest_ptr) cinfo->dest;
+    mjpg_dest_ptr dest = (mjpg_dest_ptr)cinfo->dest;
 
     /* Allocate the output buffer --- it will be released when done with image */
-    dest->buffer = (JOCTET *)(*cinfo->mem->alloc_small)((j_common_ptr) cinfo, JPOOL_IMAGE, OUTPUT_BUF_SIZE * sizeof(JOCTET));
+    dest->buffer = (JOCTET *)(*cinfo->mem->alloc_small)((j_common_ptr)cinfo, JPOOL_IMAGE, OUTPUT_BUF_SIZE * sizeof(JOCTET));
 
     *(dest->written) = 0;
 
@@ -71,9 +74,10 @@ Description.: called whenever local jpeg buffer fills up
 Input Value.:
 Return Value:
 ******************************************************************************/
-METHODDEF(boolean) empty_output_buffer(j_compress_ptr cinfo)
+METHODDEF(boolean)
+empty_output_buffer(j_compress_ptr cinfo)
 {
-    mjpg_dest_ptr dest = (mjpg_dest_ptr) cinfo->dest;
+    mjpg_dest_ptr dest = (mjpg_dest_ptr)cinfo->dest;
 
     memcpy(dest->outbuffer_cursor, dest->buffer, OUTPUT_BUF_SIZE);
     dest->outbuffer_cursor += OUTPUT_BUF_SIZE;
@@ -91,9 +95,10 @@ Description.: called by jpeg_finish_compress after all data has been written.
 Input Value.:
 Return Value:
 ******************************************************************************/
-METHODDEF(void) term_destination(j_compress_ptr cinfo)
+METHODDEF(void)
+term_destination(j_compress_ptr cinfo)
 {
-    mjpg_dest_ptr dest = (mjpg_dest_ptr) cinfo->dest;
+    mjpg_dest_ptr dest = (mjpg_dest_ptr)cinfo->dest;
     size_t datacount = OUTPUT_BUF_SIZE - dest->pub.free_in_buffer;
 
     /* Write any data remaining in the buffer */
@@ -108,15 +113,17 @@ Input Value.: buffer is the already allocated buffer memory that will hold
               the compressed picture. "size" is the size in bytes.
 Return Value: -
 ******************************************************************************/
-GLOBAL(void) dest_buffer(j_compress_ptr cinfo, unsigned char *buffer, int size, int *written)
+GLOBAL(void)
+dest_buffer(j_compress_ptr cinfo, unsigned char *buffer, int size, int *written)
 {
     mjpg_dest_ptr dest;
 
-    if(cinfo->dest == NULL) {
-        cinfo->dest = (struct jpeg_destination_mgr *)(*cinfo->mem->alloc_small)((j_common_ptr) cinfo, JPOOL_PERMANENT, sizeof(mjpg_destination_mgr));
+    if (cinfo->dest == NULL)
+    {
+        cinfo->dest = (struct jpeg_destination_mgr *)(*cinfo->mem->alloc_small)((j_common_ptr)cinfo, JPOOL_PERMANENT, sizeof(mjpg_destination_mgr));
     }
 
-    dest = (mjpg_dest_ptr) cinfo->dest;
+    dest = (mjpg_dest_ptr)cinfo->dest;
     dest->pub.init_destination = init_destination;
     dest->pub.empty_output_buffer = empty_output_buffer;
     dest->pub.term_destination = term_destination;
@@ -166,17 +173,19 @@ int compress_image_to_jpeg(struct vdIn *vd, unsigned char *buffer, int size, int
     jpeg_start_compress(&cinfo, TRUE);
 
     z = 0;
-    if (vd->formatIn == V4L2_PIX_FMT_YUYV) {
-        while(cinfo.next_scanline < vd->height) {
+    if (vd->formatIn == V4L2_PIX_FMT_YUYV)
+    {
+        while (cinfo.next_scanline < vd->height)
+        {
             int x;
             unsigned char *ptr = line_buffer;
 
-
-            for(x = 0; x < vd->width; x++) {
+            for (x = 0; x < vd->width; x++)
+            {
                 int r, g, b;
                 int y, u, v;
 
-                if(!z)
+                if (!z)
                     y = yuyv[0] << 8;
                 else
                     y = yuyv[2] << 8;
@@ -191,7 +200,8 @@ int compress_image_to_jpeg(struct vdIn *vd, unsigned char *buffer, int size, int
                 *(ptr++) = (g > 255) ? 255 : ((g < 0) ? 0 : g);
                 *(ptr++) = (b > 255) ? 255 : ((b < 0) ? 0 : b);
 
-                if(z++) {
+                if (z++)
+                {
                     z = 0;
                     yuyv += 4;
                 }
@@ -200,12 +210,16 @@ int compress_image_to_jpeg(struct vdIn *vd, unsigned char *buffer, int size, int
             row_pointer[0] = line_buffer;
             jpeg_write_scanlines(&cinfo, row_pointer, 1);
         }
-    } else if (vd->formatIn == V4L2_PIX_FMT_RGB24) {
-        while(cinfo.next_scanline < vd->height) {
+    }
+    else if (vd->formatIn == V4L2_PIX_FMT_RGB24)
+    {
+        while (cinfo.next_scanline < vd->height)
+        {
             int x;
             unsigned char *ptr = line_buffer;
 
-            for(x = 0; x < vd->width; x++) {
+            for (x = 0; x < vd->width; x++)
+            {
                 *(ptr++) = yuyv[0];
                 *(ptr++) = yuyv[1];
                 *(ptr++) = yuyv[2];
@@ -215,12 +229,16 @@ int compress_image_to_jpeg(struct vdIn *vd, unsigned char *buffer, int size, int
             row_pointer[0] = line_buffer;
             jpeg_write_scanlines(&cinfo, row_pointer, 1);
         }
-    } else if (vd->formatIn == V4L2_PIX_FMT_RGB565) {
-        while(cinfo.next_scanline < vd->height) {
+    }
+    else if (vd->formatIn == V4L2_PIX_FMT_RGB565)
+    {
+        while (cinfo.next_scanline < vd->height)
+        {
             int x;
             unsigned char *ptr = line_buffer;
 
-            for(x = 0; x < vd->width; x++) {
+            for (x = 0; x < vd->width; x++)
+            {
                 /*
                 unsigned int tb = ((unsigned char)raw[i+1] << 8) + (unsigned char)raw[i];
                 r =  ((unsigned char)(raw[i+1]) & 248);
@@ -237,17 +255,20 @@ int compress_image_to_jpeg(struct vdIn *vd, unsigned char *buffer, int size, int
             row_pointer[0] = line_buffer;
             jpeg_write_scanlines(&cinfo, row_pointer, 1);
         }
-    }  else if (vd->formatIn == V4L2_PIX_FMT_UYVY) {
-        while(cinfo.next_scanline < vd->height) {
+    }
+    else if (vd->formatIn == V4L2_PIX_FMT_UYVY)
+    {
+        while (cinfo.next_scanline < vd->height)
+        {
             int x;
             unsigned char *ptr = line_buffer;
 
-
-            for(x = 0; x < vd->width; x++) {
+            for (x = 0; x < vd->width; x++)
+            {
                 int r, g, b;
                 int y, u, v;
 
-                if(!z)
+                if (!z)
                     y = yuyv[1] << 8;
                 else
                     y = yuyv[3] << 8;
@@ -262,7 +283,8 @@ int compress_image_to_jpeg(struct vdIn *vd, unsigned char *buffer, int size, int
                 *(ptr++) = (g > 255) ? 255 : ((g < 0) ? 0 : g);
                 *(ptr++) = (b > 255) ? 255 : ((b < 0) ? 0 : b);
 
-                if(z++) {
+                if (z++)
+                {
                     z = 0;
                     yuyv += 4;
                 }
@@ -278,4 +300,48 @@ int compress_image_to_jpeg(struct vdIn *vd, unsigned char *buffer, int size, int
     free(line_buffer);
 
     return (written);
+}
+
+int rotate_jpeg(unsigned char *buffer, int size)
+{
+    struct jpeg_error_mgr jerr;
+    struct jpeg_compress_struct dinfo;
+    struct jpeg_decompress_struct cinfo;
+
+    cinfo.err = jpeg_std_error(&jerr);
+    dinfo.err = jpeg_std_error(&jerr);
+    jpeg_create_decompress(&cinfo);
+    jpeg_create_compress(&dinfo);
+    jpeg_mem_src(&cinfo, buffer, size);
+
+    // prepare transform struct
+    jpeg_transform_info xinfo;
+    xinfo.transform = JXFORM_ROT_180;
+    xinfo.perfect = FALSE;
+    xinfo.trim = FALSE;
+    xinfo.force_grayscale = FALSE;
+    xinfo.crop = FALSE;
+
+    IPRINT("transforming frame1\n");
+    int rc = jpeg_read_header(&cinfo, TRUE);
+
+    // transform
+    jvirt_barray_ptr *srccoefs = jpeg_read_coefficients(&cinfo);
+    IPRINT("transforming frame2\n");
+    jpeg_copy_critical_parameters(&cinfo, &dinfo);
+    IPRINT("transforming frame3\n");
+    IPRINT("transforming frame4\n");
+    jvirt_barray_ptr *dstcoefs = jtransform_adjust_parameters(&cinfo, &dinfo, srccoefs, &xinfo);
+    IPRINT("transforming frame5\n");
+    // jpeg_write_coefficients(&dinfo, dstcoefs);
+    IPRINT("transforming frame6\n");
+    jcopy_markers_execute(&cinfo, &dinfo, JCOPYOPT_ALL);
+    IPRINT("transforming frame7\n");
+    jtransform_execute_transformation(&cinfo, &dinfo, srccoefs, &xinfo);
+    IPRINT("transforming frame8\n");
+    jpeg_finish_compress(&dinfo);
+    jpeg_destroy_compress(&dinfo);
+    jpeg_destroy_decompress(&cinfo);
+
+    return 0;
 }

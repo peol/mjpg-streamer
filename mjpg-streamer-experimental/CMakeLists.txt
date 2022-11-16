@@ -49,7 +49,7 @@ set (MJPG_STREAMER_PLUGIN_INSTALL_PATH "lib/mjpg-streamer")
 # Global dependencies
 #
 
-find_library(JPEG_LIB jpeg)
+set (JPEG_LIB "/home/pi/libjpeg-turbo/libturbojpeg.a")
 
 
 #
