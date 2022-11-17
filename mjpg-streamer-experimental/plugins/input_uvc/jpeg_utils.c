@@ -341,5 +341,6 @@ unsigned long rotate_jpeg(unsigned char *buffer, int size)
     memcpy_picture(buffer, mem, size);
     jpeg_destroy_compress(&dinfo);
     jpeg_destroy_decompress(&cinfo);
+    free(mem);
     return mem_size;
 }
